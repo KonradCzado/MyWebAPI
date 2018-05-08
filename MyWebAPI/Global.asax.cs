@@ -1,0 +1,34 @@
+﻿using AutoMapper;
+using MyWebAPI.App_Start;
+using MyWebAPI.DTOs;
+using MyWebAPI.EF.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Http;
+using System.Web.Mvc;
+using System.Web.Optimization;
+using System.Web.Routing;
+
+namespace MyWebAPI
+{
+    public class WebApiApplication : System.Web.HttpApplication
+    {
+        protected void Application_Start()
+        {
+            Mapper.Initialize(c => 
+            {
+                c.CreateMap<Product, ProductDto>();
+                c.CreateMap<ProductDto, Product>();
+                c.CreateMap<Producer, ProducerDto>();
+                c.CreateMap<ProducerDto, Producer>();
+            });
+            AreaRegistration.RegisterAllAreas();
+            GlobalConfiguration.Configure(WebApiConfig.Register);
+            FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
+            RouteConfig.RegisterRoutes(RouteTable.Routes);
+            BundleConfig.RegisterBundles(BundleTable.Bundles);
+        }
+    }
+}

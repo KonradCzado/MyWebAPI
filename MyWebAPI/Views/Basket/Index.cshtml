@@ -1,0 +1,65 @@
+﻿@model  IEnumerable<MyWebAPI.EF.Models.Product>
+<div id="error"></div>
+<div id="success"></div>
+<h1 style="text-align:center">Basket</h1>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+
+@if (Model == null)
+{
+    <h2>Your basket is empty!</h2>
+}
+else if (Model.Count() == 0)
+{
+    <h2>Your basket is empty!</h2>
+}
+else
+{
+
+    <table id="products" class="table table-bordered table-hover">
+        <thead>
+            <tr>
+                <th>Product Name</th>
+                <th>Amount</th>
+                <th>Product Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in Model)
+            {
+                <tr>
+
+                    <td>@product.Name</td>
+                    <td>@product.Amount</td>
+                    <td>@product.Price</td>
+                </tr>
+
+            }
+        </tbody>
+    </table>
+    <button type="button" id="makeOrder" class="btn btn-primary">Make an order</button>
+}
+
+
+
+<script>
+
+    $(document).ready(function () {
+        $("#makeOrder").click(function () {
+            $.ajax({
+                url: "/Basket/MakeOrder",
+                complete: function (response) {
+                    console.log(response);
+                    if (response.responseJSON.success) {
+                        $("#success").addClass("alert alert-success").text("Order has been successfully processed! Your credit card will be charged with amount of " + response.responseJSON.responseText + "$");
+                        console.log("done");
+                    }
+                    else {
+                        $("#error").addClass("alert alert-danger").text("Error during processing order!");
+                    }
+                }
+            });               
+
+        });
+    });
+</script>

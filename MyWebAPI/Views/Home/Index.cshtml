@@ -1,0 +1,234 @@
+﻿@using MyWebAPI.EF.Models
+<center><div id="result"></div></center>
+
+<script>
+    function readUrl(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+
+            reader.onload = function (e) {
+                $('#prevImage')
+                    .attr('src', e.target.result);
+              
+            };
+
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>
+
+ <center><div class="alert alert-info" id="basketCount" title="aaa">You have @(((List<Product>)Session["userBasket"]) == null ? 0 : ((List<Product>)Session["userBasket"]).Count) Products In Your Basket!</div></center>
+ <div class="modal fade" id="myModal" role="dialog">
+     <div class="modal-dialog modal-sm">
+         <div class="modal-content">
+             <div class="modal-header">
+                 <button type="button" class="close" data-dismiss="modal">&times;</button>
+                 <h4 class="modal-title">Upload product picture</h4>
+             </div>
+             <div class="modal-body">
+            
+                    Select file : <input type='file' name='file' id='file' class='form-control' accept="image/*" onchange="readUrl(this);"><br>
+                   <button type="button" class="btn btn-primary" id="uploadImage" data-dismiss="modal">Save</button>
+               
+             </div>
+             <div id="preview">
+                 <img id="prevImage" style="max-height:300px;max-width:300px"/>
+             </div>
+             <div class="modal-footer">
+                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+             </div>
+         </div>
+     </div>
+ </div>
+
+
+<style>
+    .highlight {
+        color: greenyellow
+    }
+</style>
+
+<table id="products" class="table table-bordered table-hover table-striped">
+    <thead>
+        <tr>
+            <th>Product Name</th>
+            <th>Product Price</th>
+            <th>Amount</th>
+            <th>Producer</th>
+            <th>Order</th>
+            <th>Delete</th>
+            <th>Upload Picture</th>
+        </tr>
+       
+    </thead>
+    <tbody></tbody>
+</table>
+
+
+@section scripts
+{
+    <script>
+
+
+
+        $(function () {
+
+            var pictureForID = 0;
+            $(".outOfStockToolTip").tooltip({
+                content: "xd"
+            });
+
+            var table = $("#products").DataTable({
+                ajax: {
+                    url: "/api/products",
+                    dataSrc: ""
+                },
+                columns: [
+                    {
+                        data: "name",
+                    },
+                    {
+                        data: "price",
+                    },
+                    {
+                        data: "amount",
+                        render: function (data, x, row) {
+                            if (data === 0) {
+
+                                $(".js-makeOrder[data-product-id=" + row.id + "]").attr("disabled", true);
+                                $(".js-makeOrder[data-product-id=" + row.id + "]").addClass("outOfStockToolTip");
+                                $(".js-makeOrder[data-product-id=" + row.id + "]").attr("title", "This product is out of stock!");
+                            }
+
+                            return data;
+                        }
+
+                    },
+                    {
+                        data: "producer.name",
+                    },
+                    {
+                        data: "id",
+                        render: function (data) {
+                            return "<button class='btn-link js-makeOrder' data-product-id=" + data + ">Buy</button>";
+                        }
+                    },
+                    {
+                        data: "id",
+                        render: function (data) {
+                            return "<button class='btn-link js-delete' data-product-id=" + data + ">Delete</button>";
+                        }
+                    },
+                    {
+                        data: "id",
+                        render: function (data) {
+                            
+                            return "<button class='btn-link js-addPicture' data-product-id=" + data + " data-toggle='modal' data-target='#myModal'>Add picture</button>";
+                        }
+                    }
+
+
+
+                ]
+            });
+
+
+            $("#products").on("click", ".js-delete", function () {
+                var button = $(this);
+                bootbox.confirm("Are you sure you want to delete these product?", function (result) {
+                    if (result) {
+                        $.ajax({
+                            url: "/api/products/" + button.attr("data-product-id"),
+                            method: "DELETE",
+                            success: function () {
+                                table.row(button.parents("tr")).remove().draw();
+                            }
+                        });
+                    }
+                });
+            });
+            $("#products").on("click", ".js-makeOrder", function () {
+                var button = $(this);
+                bootbox.confirm("Are you sure you want to buy this product?", function (result) {
+                    if (result) {
+                        $.ajax({
+                            url: "/Home/AddToBasket/" + button.attr("data-product-id"),
+                            success: function (response) {
+                                if (response.success) {
+                                    $("#result").removeClass("alert alert-danger");
+                                    $("#result").addClass("alert alert-success");
+                                    $("#result").text(response.responseText);
+                                    table.ajax.reload();
+                                    $("#basketCount").text("You have " + response.basketItemsCount + " Products In Your Basket!");
+                                } else {
+
+                                    $("#result").removeClass("alert alert-success");
+                                    $("#result").addClass("alert alert-danger");
+                                    $("#result").text(response.responseText);
+                                }
+                            }
+
+
+                        });
+                    }
+
+                });
+            });
+            $("#products").on("click", ".js-addPicture", function () {
+                $("#prevImage").attr("src", "");
+                var button = $(this);
+                pictureForID = button.attr("data-product-id");
+                $.ajax({
+                    url: "/api/Products/GetProduct?id=" + pictureForID,
+                    type: "GET",
+                    success: function (result) {
+                        if(result.image !== '')
+                             $("#prevImage").attr("src", "data:image/png;base64, " + result.image);
+                    }
+                });
+            });
+
+
+            
+            var data = new FormData();
+            $("#file").on("change", function (e) {
+               
+                var files = e.target.files;
+                console.log(files);
+               
+                   
+                for (var i = 0; i < files.length; i++) {
+                  
+                    data.append(files[i].name, files[i]);
+                   
+                  }
+                   
+
+                for (var pair of data.entries()) {
+                    console.log(pair[0] + ', ' + pair[1]);
+                }
+
+                console.log(data);
+
+            });
+
+            $("#uploadImage").on("click", function (e) {
+                $.ajax({
+                    url: "/Home/UploadImage?productId=" + pictureForID,
+                    type: "POST",
+                    data: data,
+                    contentType: false,
+                    cache: false,
+                    processData: false,
+                }).done(function () {
+                    data = new FormData();
+                });
+            });
+        });
+
+    
+       
+        
+
+    </script>
+}
